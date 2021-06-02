@@ -1,7 +1,6 @@
 import sqlalchemy
 
 
-
 class DataBase:
     def __init__(self, db):
         self.db = db
@@ -30,6 +29,19 @@ class DataBase:
             result.append(item[1])
         return result
 
+    def select_advanced_search(self, user_id):
+        result_db = self.connection.execute(f"select * from advancedsearch where id_users={user_id};").fetchall()
+        if len(result_db) != 0:
+            result = list()
+            for item in result_db:
+                if item[-1] == user_id:
+                    result.append(item)
+            return result[-1]
+
+    def delete_advanced_search(self, user_id):
+        result = self.connection.execute(f"delete from advancedsearch where id_users={user_id}")
+        return result
+
     def insert_users_like_list(self, users_like, id_users):
         self.connection.execute(
             f"INSERT INTO Userslikelist (id, users_like, id_users) VALUES (DEFAULT, {users_like}, {id_users})")
@@ -37,3 +49,8 @@ class DataBase:
     def insert_users_black_list(self, users_black, id_users):
         self.connection.execute(
             f"INSERT INTO Usersblacklist (id, users_black, id_users) VALUES (DEFAULT, {users_black}, {id_users})")
+
+    def insert_advanced_search(self, city, age_from, age_to, user_sex, user_status, id_users):
+        self.connection.execute(
+            f"INSERT INTO advancedsearch (id,city,age_from,age_to,user_sex,user_status,id_users) VALUES "
+            f"(DEFAULT, '{city}', {age_from}, {age_to}, {user_sex}, {user_status}, {id_users});")
