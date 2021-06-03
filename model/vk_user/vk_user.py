@@ -11,6 +11,11 @@ class VkUser(VkApi):
         }
         return result
 
+    def user_get(self, id_user: int):
+        response = self.method('users.get', {'user_ids': id_user})
+        result = f"{response[0]['first_name']} {response[0]['last_name']}"
+        return result
+
     def photos_get(self, user_id):
         photos_get = self.method('photos.get', {'owner_id': user_id, 'album_id': 'profile', 'extended': 1})
         check_likes_comments = list()

@@ -1,9 +1,11 @@
 from vk_api.longpoll import VkEventType
-from model.vk_user.vk_user import vk_user
-from model.keyboard.keyboard import button_bot, button_bot_status, button_bot_age
+from model.keyboard.keyboard import button_bot
 from model.settings.settings_bot import vk_session, longpoll, users_db
 from model.vk_user.community_msg import write_msg
 from model.vk_user.regular_expression import regular_search, PATTERNS_CITY
+from model.bots_logic.bots_logic_event_text import user_greetings, enter_the_city_input, \
+    enter_the_city_result, write_sex, write_status, write_search, logic_search
+from model.bots_logic.bots_menu import write_menu, write_like_list, write_black_list
 
 
 def main():
@@ -41,108 +43,46 @@ def main():
 
                 if result_text == 'Привет Vkinder' or result_text == 'Назад' or result_text == 'Начать' or \
                         result_text == 'Привет':
-                    write_msg(event.user_id, f"Привет {user_full_name}")
-                    write_msg(event.user_id, "Я бот который подберет тебе пару!")
-                    write_msg(event.user_id, "Перед тем как начать знай что есть 'меню', оно только для тебя доступно")
-                    write_msg(event.user_id, "Давай начнем")
-                    write_msg(event.user_id, "Выбери нужный поиск",
-                              keyboard=button_bot("Поиск по параметрам", "Быстрый поиск"))
+                    user_greetings(event, user_full_name)
 
                 elif result_text == 'Поиск по параметрам':
-                    write_msg(event.user_id, "Введи город *город, обязательно слитно")
+                    enter_the_city_input(event)
 
                 elif regular_search(PATTERNS_CITY, result_text):
                     extended_city = result_text.replace('*', '')
-                    if vk_user().check_city(extended_city):
-                        write_msg(event.user_id, "Выбери возвраст",
-                                  keyboard=button_bot_age("18 - 20", "21 - 25", "26 - 30", "31 - 35", "36 - 55"))
-                    else:
-                        write_msg(event.user_id, "Такого города не существует",
-                                  keyboard=button_bot("Поиск по параметрам", "Пока"))
+                    enter_the_city_result(event, extended_city)
 
                 elif result_text == "18 - 20" or result_text == "21 - 25" or result_text == "26 - 30" or \
                         result_text == "31 - 35" or result_text == "36 - 55":
                     extended_age = result_text.split(' - ')
-                    write_msg(event.user_id, "Выбери пол", keyboard=button_bot("1-женщина", "2-мужчина"))
+                    write_sex(event)
 
                 elif result_text == "1-женщина" or result_text == "2-мужчина":
                     extended_sex = result_text.split('-')
-                    write_msg(event.user_id, "Выбери статус", keyboard=button_bot_status("1 - не женат/не замужем",
-                                                                                         "5 - всё сложно",
-                                                                                         "6 - в активном поиске",
-                                                                                         "0 - не указано"))
+                    write_status(event)
                 elif result_text == "1 - не женат/не замужем" or \
                         result_text == "5 - всё сложно" or result_text == "6 - в активном поиске" \
                         or result_text == "0 - не указано":
                     extended_status = result_text.split(' - ')
-                    write_msg(event.user_id, "Нажми на поиск", keyboard=button_bot("Поиск"))
+                    write_search(event)
 
                 elif result_text == 'Быстрый поиск' or result_text == 'Не нравиться' or result_text == "Поиск" \
-                        or result_text == "Нравиться" or result_text == "Еще":
-                    if advanced_search:
-                        search = vk_user().search_users(advanced_search[1], advanced_search[2], advanced_search[3],
-                                                        advanced_search[4], advanced_search[5])
-                    else:
-                        search = vk_user().search_users(city_users, 16, 55, vk_user().sex_status().get(user_sex), 6)
-
-                    for like in users_db.select_users_lists("Userslikelist"):
-                        if like in search:
-                            search.remove(like)
-
-                    for black in users_db.select_users_lists("Usersblacklist"):
-                        if black in search:
-                            search.remove(black)
-
-                    for item_id in search:
-                        if result_text == "Нравиться":
-                            users_db.insert_users_like_list(item_id, user_id)
-                            search.remove(item_id)
-                            write_msg(event.user_id, "Ищем дальше??? Или хватит", keyboard=button_bot("Поиск", "Пока"))
-
-                        if result_text == "Не нравиться":
-                            users_db.insert_users_black_list(item_id, user_id)
-                            search.remove(item_id)
-                            write_msg(event.user_id, "еще", keyboard=button_bot("Еще"))
-
-                        if result_text == "Быстрый поиск" or result_text == "Поиск" or result_text == "Еще":
-                            write_msg(event.user_id, 'Что-то я нашел')
-                            attachment = vk_user().photos_get(item_id)
-                            write_msg(event.user_id, "Нравиться???", keyboard=button_bot("Нравиться", "Не нравиться"),
-                                      attachment=','.join(attachment))
-                            search_user_id = f"https://vk.com/id{item_id}"
-                            write_msg(event.user_id, search_user_id)
-                        break
-
-                elif result_text == "меню":
-                    write_msg(event.user_id, "Привет, ты попал в меню")
-                    write_msg(event.user_id, "Здесь ты можешь посмотреть людей в разных списках")
-                    write_msg(event.user_id, "Для этого нажми на кнопку",
-                              keyboard=button_bot("Избранный список", "Черный список", "Пока"))
+                        or result_text == "Нравиться" or result_text == "Давай":
+                    logic_search(advanced_search, city_users, user_sex, users_db, result_text, user_id, event)
+                elif result_text == "меню" or result_text == "Меню":
+                    write_menu(event)
                 elif result_text == "Черный список":
-                    write_msg(event.user_id, 'Посмотри на последних 10 людей в черном списке')
-                    result_black = users_db.select_list('Usersblacklist', 'users_black', user_id)
-                    if result_black:
-                        for item in result_black:
-                            write_msg(event.user_id, f"https://vk.com/id{item}")
-                    else:
-                        write_msg(event.user_id, "У вас пока нет людей в черном списке", button_bot("меню"))
-                    write_msg(event.user_id, "Нажми на кнопку чтобы вернуться в меню", button_bot("меню"))
+                    write_black_list(event, users_db, user_id)
                 elif result_text == "Избранный список":
-                    write_msg(event.user_id, 'Посмотри на последних 10 людей в избранном списке')
-                    result_like = users_db.select_list('Userslikelist', 'users_like', user_id)
-                    if result_like:
-                        for item in result_like:
-                            write_msg(event.user_id, f"https://vk.com/id{item}")
-                    else:
-                        write_msg(event.user_id, "У вас пока нет людей в избранном списке", button_bot("меню"))
-                    write_msg(event.user_id, "Нажми на кнопку чтобы вернуться в меню", button_bot("меню"))
-                elif result_text == 'Пока':
+                    write_like_list(event, users_db, user_id)
+                elif result_text == 'Пока' or result_text == 'Хватит':
                     write_msg(event.user_id, "Пока")
                     users_db.delete_advanced_search(user_id)
                     extended_city = ""
                     extended_age = ""
                     extended_sex = ""
                     extended_status = ""
-                    write_msg(event.user_id, "Однажды ты найдешь свою любовь, человек)")
+                    write_msg(event.user_id, "Однажды ты найдешь свою любовь, человек)\nА если не получиться пиши",
+                              button_bot("Привет Vkinder"))
                 else:
                     write_msg(event.user_id, 'Нажми на кнопку', keyboard=button_bot("Привет Vkinder"))

@@ -1,3 +1,4 @@
 SQLAlchemy~=1.4.17
 vk_api~=11.9.4
 psycopg2~=2.8.6
+pytest~=6.2.4
