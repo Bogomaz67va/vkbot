@@ -3,7 +3,7 @@ from model.vk_user.vk_user import vk_user
 from model.keyboard.keyboard import button_bot, button_bot_status, button_bot_age
 from model.settings.settings_bot import vk_session, longpoll, users_db
 from model.vk_user.community_msg import write_msg
-from model.vk_user.regular_expression import regular_search
+from model.vk_user.regular_expression import regular_search, PATTERNS_CITY
 
 
 def main():
@@ -41,7 +41,9 @@ def main():
 
                 if result_text == 'Привет Vkinder' or result_text == 'Назад' or result_text == 'Начать' or \
                         result_text == 'Привет':
+                    write_msg(event.user_id, f"Привет {user_full_name}")
                     write_msg(event.user_id, "Я бот который подберет тебе пару!")
+                    write_msg(event.user_id, "Перед тем как начать знай что есть 'меню', оно только для тебя доступно")
                     write_msg(event.user_id, "Давай начнем")
                     write_msg(event.user_id, "Выбери нужный поиск",
                               keyboard=button_bot("Поиск по параметрам", "Быстрый поиск"))
@@ -49,7 +51,7 @@ def main():
                 elif result_text == 'Поиск по параметрам':
                     write_msg(event.user_id, "Введи город *город, обязательно слитно")
 
-                elif regular_search(result_text):
+                elif regular_search(PATTERNS_CITY, result_text):
                     extended_city = result_text.replace('*', '')
                     if vk_user().check_city(extended_city):
                         write_msg(event.user_id, "Выбери возвраст",
@@ -111,6 +113,29 @@ def main():
                             write_msg(event.user_id, search_user_id)
                         break
 
+                elif result_text == "меню":
+                    write_msg(event.user_id, "Привет, ты попал в меню")
+                    write_msg(event.user_id, "Здесь ты можешь посмотреть людей в разных списках")
+                    write_msg(event.user_id, "Для этого нажми на кнопку",
+                              keyboard=button_bot("Избранный список", "Черный список", "Пока"))
+                elif result_text == "Черный список":
+                    write_msg(event.user_id, 'Посмотри на последних 10 людей в черном списке')
+                    result_black = users_db.select_list('Usersblacklist', 'users_black', user_id)
+                    if result_black:
+                        for item in result_black:
+                            write_msg(event.user_id, f"https://vk.com/id{item}")
+                    else:
+                        write_msg(event.user_id, "У вас пока нет людей в черном списке", button_bot("меню"))
+                    write_msg(event.user_id, "Нажми на кнопку чтобы вернуться в меню", button_bot("меню"))
+                elif result_text == "Избранный список":
+                    write_msg(event.user_id, 'Посмотри на последних 10 людей в избранном списке')
+                    result_like = users_db.select_list('Userslikelist', 'users_like', user_id)
+                    if result_like:
+                        for item in result_like:
+                            write_msg(event.user_id, f"https://vk.com/id{item}")
+                    else:
+                        write_msg(event.user_id, "У вас пока нет людей в избранном списке", button_bot("меню"))
+                    write_msg(event.user_id, "Нажми на кнопку чтобы вернуться в меню", button_bot("меню"))
                 elif result_text == 'Пока':
                     write_msg(event.user_id, "Пока")
                     users_db.delete_advanced_search(user_id)

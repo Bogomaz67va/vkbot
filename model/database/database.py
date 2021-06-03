@@ -30,13 +30,23 @@ class DataBase:
         return result
 
     def select_advanced_search(self, user_id):
-        result_db = self.connection.execute(f"select * from advancedsearch where id_users={user_id};").fetchall()
+        if user_id is not None:
+            result_db = self.connection.execute(f"select * from advancedsearch where id_users={user_id};").fetchall()
+            if len(result_db) != 0:
+                result = list()
+                for item in result_db:
+                    if item[-1] == user_id:
+                        result.append(item)
+                return result[-1]
+
+    def select_list(self, db_name, table_name, user_id):
+        result_db = self.connection.execute(
+            f"select {table_name} from {db_name} where id_users={user_id} order by id desc limit 10;").fetchall()
         if len(result_db) != 0:
             result = list()
             for item in result_db:
-                if item[-1] == user_id:
-                    result.append(item)
-            return result[-1]
+                result.append(item[0])
+            return result
 
     def delete_advanced_search(self, user_id):
         result = self.connection.execute(f"delete from advancedsearch where id_users={user_id}")
